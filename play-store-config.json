@@ -1,0 +1,24 @@
+{
+  "packageId": "in.dihadi.app",
+  "appName": "Dihadi - Kaam bhi, Majdoor bhi",
+  "shortName": "Dihadi",
+  "category": "BUSINESS",
+  "defaultLocale": "en-IN",
+  "supportedLocales": ["hi-IN", "en-IN"],
+  "themeColor": "#EA580C",
+  "backgroundColor": "#FFFFFF",
+  "webManifestUrl": "/manifest.webmanifest",
+  "startUrl": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "privacyPolicyUrl": "https://ais-dev-cu76msermmqjedghfm7cwr-58305786231.asia-southeast1.run.app/privacy-policy",
+  "contactEmail": "support@dihadi.in",
+  "features": [
+    "Hyperlocal daily work matching",
+    "Verified worker and contractor profiles",
+    "Direct call and chat without middleman commission",
+    "Works offline as a Progressive Web App"
+  ]
+}

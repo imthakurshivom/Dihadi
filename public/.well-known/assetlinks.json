@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "in.dihadi.app",
+    "sha256_cert_fingerprints": [
+      "14:6D:E9:7D:0C:52:97:1D:9E:76:11:8B:42:16:0C:EB:30:16:14:C2:55:F9:9E:BC:30:EC:27:00:1E:43:74:95"
+    ]
+  }
+}]

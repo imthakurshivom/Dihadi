@@ -1,0 +1,10 @@
+{
+  "name": "Dihadi",
+  "description": "Kaam bhi, Majdoor bhi — Apne Aas-Paas. Hyperlocal marketplace for local workers, daily-wage jobs, and skilled labour.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
