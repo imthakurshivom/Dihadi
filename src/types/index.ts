@@ -6,6 +6,8 @@ export interface User {
   id: string;
   name: string;
   phone: string;
+  email?: string;
+  authProvider?: 'google' | 'phone';
   role: UserMode;
   avatar: string;
   city: string;
@@ -137,7 +139,8 @@ export type HiringStatus =
   | 'in_progress'
   | 'completed'
   | 'payment_pending'
-  | 'paid';
+  | 'paid'
+  | 'cancelled';
 
 export interface Hiring {
   id: string;
@@ -153,13 +156,21 @@ export interface Hiring {
   scheduledDate: string;
   duration: string;
   status: HiringStatus;
-  paymentMethod: 'cash' | 'upi' | 'pending';
-  paymentStatus: 'pending' | 'paid' | 'disputed';
+  paymentMethod: 'cash' | 'upi' | 'escrow' | 'pending';
+  paymentStatus: 'pending' | 'locked' | 'paid' | 'disputed' | 'refunded';
   amount: number;
   createdAt: string;
   completedAt?: string;
   workerRated?: boolean;
   employerRated?: boolean;
+  // Escrow & Payment Lock details
+  isEscrowLocked?: boolean;
+  escrowAmount?: number;
+  escrowTransactionId?: string;
+  escrowLockedAt?: string;
+  escrowReleasedAt?: string;
+  completionOtp?: string;
+  workNotes?: string;
 }
 
 export interface Message {
@@ -234,13 +245,38 @@ export interface PaymentRecord {
 export interface ReportItem {
   id: string;
   reporterId: string;
+  reporterName?: string;
+  reporterPhone?: string;
+  reporterRole?: 'worker' | 'employer';
   reportedTargetId: string;
   targetTitle: string;
   targetType: 'job' | 'worker' | 'employer';
+  targetPhone?: string;
+  targetName?: string;
   reason: string;
   details: string;
-  status: 'pending' | 'resolved' | 'dismissed';
+  disputeAmount?: number;
+  status: 'pending' | 'in_progress' | 'resolved' | 'dismissed';
+  resolutionNote?: string;
+  actionTaken?: string;
   timestamp: string;
+}
+
+export interface AdminSession {
+  officerName: string;
+  email: string;
+  phone: string;
+  role: 'Super Admin' | 'Grievance Officer' | 'Dispute Arbitrator';
+  token: string;
+  loginTime: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  timestamp: string;
+  officerName: string;
+  action: string;
+  details: string;
 }
 
 export interface Category {

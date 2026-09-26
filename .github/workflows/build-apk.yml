@@ -1,0 +1,90 @@
+name: Build Dihadi Android APK & Release Bundle
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - apk_only
+          - bundle_only
+
+jobs:
+  build-android:
+    name: 📱 Build Android APK & AAB
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: ☕ Setup Java JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📦 Install Node Dependencies
+        run: npm ci || npm install
+
+      - name: 🔨 Run Android Build Script
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'dihadi@2026' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'dihadi' }}
+        run: |
+          chmod +x ./scripts/build-android.sh
+          ./scripts/build-android.sh
+
+      - name: 📤 Upload APK & AAB as Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dihadi-Android-App-APK
+          path: |
+            release-artifacts/*.apk
+            release-artifacts/*.aab
+          retention-days: 30
+
+      - name: 🚀 Publish GitHub Release (When Tagged)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.aab
+          title: Dihadi Android Release ${{ github.ref_name }}
+          body: |
+            ## Dihadi Mobile Application Release 🚀
+            
+            - **Package ID:** `in.dihadi.app`
+            - **Version:** ${{ github.ref_name }}
+            
+            ### Included Assets:
+            - `dihadi-release.apk`: Direct installable APK for Android phones.
+            - `dihadi-playstore-bundle.aab`: Production bundle for Google Play Console.
+          draft: false
+          prerelease: false

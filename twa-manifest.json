@@ -1,0 +1,36 @@
+{
+  "packageId": "in.dihadi.app",
+  "host": "ais-dev-cu76msermmqjedghfm7cwr-58305786231.asia-southeast1.run.app",
+  "name": "Dihadi - Kaam bhi, Majdoor bhi",
+  "launcherName": "Dihadi",
+  "themeColor": "#EA580C",
+  "navigationColor": "#EA580C",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://ais-dev-cu76msermmqjedghfm7cwr-58305786231.asia-southeast1.run.app/pwa-512x512.png",
+  "maskableIconUrl": "https://ais-dev-cu76msermmqjedghfm7cwr-58305786231.asia-southeast1.run.app/pwa-maskable-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://ais-dev-cu76msermmqjedghfm7cwr-58305786231.asia-southeast1.run.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "dihadi"
+  }
+}

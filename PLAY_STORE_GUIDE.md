@@ -21,7 +21,38 @@ Because Dihadi is built as a standards-compliant **Progressive Web App (PWA)**, 
 
 ---
 
-## Method 1: Instant No-Code Packaging via PWABuilder (Recommended & Fastest)
+## Method 1: Automatic GitHub Actions APK & AAB Workflow (Zero Local Setup)
+
+This repository includes a pre-configured CI/CD workflow at `.github/workflows/build-apk.yml`.
+
+### How to Push and Get Your APK:
+
+1. **Create a new repository** on [GitHub.com](https://github.com/new) (e.g. `dihadi-android`).
+2. **Add remote and push from terminal:**
+   ```bash
+   git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>.git
+   git branch -M main
+   git push -u origin main
+   ```
+3. **Download your APK:**
+   - Go to your repository on GitHub.
+   - Click the **Actions** tab at the top.
+   - Click the running or completed **"Build Dihadi Android APK & Release Bundle"** workflow.
+   - Scroll down to **Artifacts** and download:
+     - `dihadi-release.apk` (Install directly on any Android phone)
+     - `dihadi-playstore-bundle.aab` (Upload to Google Play Console)
+
+4. **Automatic Releases:**
+   - To create an official GitHub Release with downloadable APK:
+     ```bash
+     git tag v1.0.0
+     git push origin v1.0.0
+     ```
+   - GitHub Actions will build and attach the APK file to the **Releases** tab automatically.
+
+---
+
+## Method 2: Instant No-Code Packaging via PWABuilder (Alternative)
 
 1. Open [PWABuilder.com](https://www.pwabuilder.com).
 2. Enter your live URL:

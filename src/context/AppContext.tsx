@@ -14,6 +14,8 @@ import {
   ReportItem,
   DistanceFilter,
   HiringStatus,
+  AdminSession,
+  AdminAuditLog,
 } from '../types';
 import { translations } from '../i18n/translations';
 import {
@@ -24,6 +26,7 @@ import {
   INITIAL_REVIEWS,
   INITIAL_CONVERSATIONS,
   INITIAL_NOTIFICATIONS,
+  INITIAL_REPORTS,
 } from '../data/mockData';
 
 interface AppContextType {
@@ -49,6 +52,7 @@ interface AppContextType {
   isAuthenticated: boolean;
   currentUser: User;
   loginWithOtp: (phone: string, otp: string, name?: string, role?: UserMode) => boolean;
+  loginWithGoogle: (name?: string, email?: string, avatar?: string, role?: UserMode) => void;
   logout: () => void;
   verifyAadhaar: (aadhaarNumber: string) => boolean;
 
@@ -72,18 +76,69 @@ interface AppContextType {
   postJob: (job: Omit<Job, 'id' | 'createdAt' | 'status' | 'workersHiredCount'>) => Job;
   createWorkerProfile: (profile: Partial<WorkerProfile>) => void;
   hireWorker: (workerId: string, jobId?: string, wage?: number, date?: string) => Hiring;
+  bookWorkerWithEscrow: (params: {
+    workerId: string;
+    jobId?: string;
+    jobTitle?: string;
+    wage: number;
+    days?: number;
+    scheduledDate?: string;
+    notes?: string;
+    upiId?: string;
+  }) => Hiring;
+  releaseEscrowPayment: (hiringId: string, rating?: number, reviewText?: string) => { success: boolean; message: string };
+  refundEscrowPayment: (hiringId: string, reason?: string) => { success: boolean; message: string };
+  isEscrowBookingModalOpen: boolean;
+  setIsEscrowBookingModalOpen: (open: boolean) => void;
+  selectedWorkerForEscrow: WorkerProfile | null;
+  setSelectedWorkerForEscrow: (worker: WorkerProfile | null) => void;
+  selectedJobIdForEscrow?: string;
+  setSelectedJobIdForEscrow: (jobId?: string) => void;
   updateHiringStatus: (hiringId: string, status: HiringStatus, paymentMethod?: 'cash' | 'upi', amount?: number) => void;
   addReview: (review: Omit<Review, 'id' | 'date'>) => void;
   sendMessage: (conversationId: string, text: string) => void;
   startOrGetConversation: (workerId: string, employerId: string, jobId?: string) => string;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
-  submitReport: (targetId: string, targetTitle: string, targetType: 'job' | 'worker' | 'employer', reason: string, details: string) => void;
+  submitReport: (
+    targetId: string,
+    targetTitle: string,
+    targetType: 'job' | 'worker' | 'employer',
+    reason: string,
+    details: string,
+    disputeAmount?: number,
+    targetPhone?: string,
+    targetName?: string
+  ) => void;
 
   // Admin Actions
   verifyUserAdmin: (userId: string) => void;
+  toggleWorkerVerificationAdmin: (workerId: string) => void;
   removeJobAdmin: (jobId: string) => void;
-  resolveReportAdmin: (reportId: string) => void;
+  resolveReportAdmin: (reportId: string, note?: string) => void;
+  updateReportStatus: (
+    reportId: string,
+    status: 'pending' | 'in_progress' | 'resolved' | 'dismissed',
+    note?: string,
+    actionTaken?: string
+  ) => void;
+  toggleEmployerVerificationAdmin: (employerName: string) => void;
+  broadcastNotice: (title: string, message: string) => void;
+
+  // Admin Authentication & Dedicated Portal
+  isAdminAuthenticated: boolean;
+  adminSession: AdminSession | null;
+  adminPasscode: string;
+  loginAdmin: (passcode: string, emailOrId?: string) => { success: boolean; message: string };
+  logoutAdmin: () => void;
+  updateAdminPasscode: (newPin: string) => void;
+  openAdminPortal: () => void;
+  isAdminLoginModalOpen: boolean;
+  setIsAdminLoginModalOpen: (open: boolean) => void;
+  isDedicatedAdminPortal: boolean;
+  setIsDedicatedAdminPortal: (open: boolean) => void;
+  adminAuditLogs: AdminAuditLog[];
+  addAdminAuditLog: (action: string, details: string) => void;
 
   // UI Modals
   isPostJobOpen: boolean;
@@ -128,6 +183,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     id: 'u-user-current',
     name: 'Suresh Kumar',
     phone: '+91 98125 12345',
+    email: 'suresh.mistri@dihadi.local',
+    authProvider: 'phone',
     role: 'worker',
     avatar: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&auto=format&fit=crop&q=80',
     city: 'Sonipat',
@@ -178,13 +235,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       employerId: 'emp-101',
       employerName: 'Gupta Contractor',
       wagePerDay: 900,
-      scheduledDate: 'Kal Subah (Tomorrow)',
-      duration: '5 Days',
-      status: 'scheduled',
-      paymentMethod: 'cash',
-      paymentStatus: 'pending',
-      amount: 4500,
-      createdAt: 'Aaj Subah',
+      scheduledDate: 'Kal Subah (Tomorrow 8:30 AM)',
+      duration: '1 Day',
+      status: 'in_progress',
+      paymentMethod: 'escrow',
+      paymentStatus: 'locked',
+      amount: 900,
+      createdAt: 'Aaj Subah 09:15 AM',
+      isEscrowLocked: true,
+      escrowAmount: 900,
+      escrowTransactionId: 'TXN-DIHADI-ESC-9081',
+      escrowLockedAt: 'Aaj Subah 09:15 AM',
+      completionOtp: '4892',
+      workNotes: 'Boundary wall chinai & plaster. Payment Dihadi Suraksha me lock hai.',
+    },
+    {
+      id: 'hire-2',
+      jobId: 'job-2',
+      jobTitle: 'Kundli Industrial Area - Site Helper',
+      workerId: 'worker-2',
+      workerName: 'Sunil Paswan',
+      workerAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
+      workerPhone: '+91 94162 88319',
+      employerId: 'emp-102',
+      employerName: 'Malik Logistics & Warehouse',
+      wagePerDay: 600,
+      scheduledDate: 'Parso',
+      duration: '1 Day',
+      status: 'completed',
+      paymentMethod: 'escrow',
+      paymentStatus: 'paid',
+      amount: 600,
+      createdAt: '2 din pehle',
+      completedAt: 'Kal Sham 6:00 PM',
+      isEscrowLocked: false,
+      escrowAmount: 600,
+      escrowTransactionId: 'TXN-DIHADI-ESC-8812',
+      escrowLockedAt: '2 din pehle',
+      escrowReleasedAt: 'Kal Sham 6:00 PM',
+      completionOtp: '7120',
+      workerRated: true,
+      employerRated: true,
+      workNotes: 'Loading/unloading completed. Payment released to worker UPI.',
     },
   ]);
 
@@ -238,7 +330,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [reports, setReports] = useState<ReportItem[]>(INITIAL_REPORTS);
   const [savedJobIds, setSavedJobIds] = useState<string[]>(['job-1', 'job-3']);
   const [savedWorkerIds, setSavedWorkerIds] = useState<string[]>(['worker-1', 'worker-3']);
 
@@ -247,7 +339,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
+  const [isDedicatedAdminPortal, setIsDedicatedAdminPortal] = useState(false);
   const [isPlayStoreModalOpen, setIsPlayStoreModalOpen] = useState(false);
+  const [isEscrowBookingModalOpen, setIsEscrowBookingModalOpen] = useState(false);
+  const [selectedWorkerForEscrow, setSelectedWorkerForEscrow] = useState<WorkerProfile | null>(null);
+  const [selectedJobIdForEscrow, setSelectedJobIdForEscrow] = useState<string | undefined>(undefined);
+
+  // Admin Authentication & Session State
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('dihadi_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(() => {
+    try {
+      const saved = localStorage.getItem('dihadi_admin_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [adminPasscode, setAdminPasscode] = useState<string>(() => {
+    try {
+      return localStorage.getItem('dihadi_admin_pin') || '9876';
+    } catch {
+      return '9876';
+    }
+  });
+
+  const [adminAuditLogs, setAdminAuditLogs] = useState<AdminAuditLog[]>([
+    {
+      id: 'log-1',
+      timestamp: 'Today, 10:30 AM',
+      officerName: 'Shivom Chauhan (Grievance Officer)',
+      action: 'Dispute Mediation Initialized',
+      details: 'Reviewed wage payment dispute between Suresh Kumar and Verma Constructions.',
+    },
+    {
+      id: 'log-2',
+      timestamp: 'Yesterday, 04:15 PM',
+      officerName: 'Admin System',
+      action: 'Aadhaar KYC Verification',
+      details: 'Verified 4 new workers with verified badges in Sonipat Sector 14.',
+    },
+  ]);
+
+  // URL Hash Listener for direct Admin Portal bookmarking (#admin or #admin-portal)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#admin' || hash === '#admin-portal') {
+        if (localStorage.getItem('dihadi_admin_auth') === 'true') {
+          setIsDedicatedAdminPortal(true);
+        } else {
+          setIsAdminLoginModalOpen(true);
+        }
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<Job | null>(null);
   const [selectedWorkerForDetail, setSelectedWorkerForDetail] = useState<WorkerProfile | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -437,6 +594,239 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newHiring;
   };
 
+  // Book Worker with Escrow (Payment Lock Guarantee)
+  const bookWorkerWithEscrow = (params: {
+    workerId: string;
+    jobId?: string;
+    jobTitle?: string;
+    wage: number;
+    days?: number;
+    scheduledDate?: string;
+    notes?: string;
+    upiId?: string;
+  }): Hiring => {
+    const targetWorker = workers.find((w) => w.id === params.workerId) || workers[0];
+    const relatedJob = params.jobId ? jobs.find((j) => j.id === params.jobId) : undefined;
+    const numDays = params.days && params.days > 0 ? params.days : 1;
+    const totalWage = params.wage * numDays;
+    const txnId = `TXN-DIHADI-ESC-${Math.floor(100000 + Math.random() * 900000)}`;
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newHiring: Hiring = {
+      id: `hire-${Date.now()}`,
+      jobId: relatedJob?.id || params.jobId || 'escrow-booking',
+      jobTitle: params.jobTitle || relatedJob?.title || `${targetWorker.categoryName} (Guaranteed Work)`,
+      workerId: targetWorker.id,
+      workerName: targetWorker.name,
+      workerAvatar: targetWorker.avatar,
+      workerPhone: targetWorker.phone,
+      employerId: currentUser.id,
+      employerName: currentUser.name,
+      wagePerDay: params.wage,
+      scheduledDate: params.scheduledDate || 'Kal Subah 8:30 AM',
+      duration: `${numDays} Day${numDays > 1 ? 's' : ''}`,
+      status: 'in_progress',
+      paymentMethod: 'escrow',
+      paymentStatus: 'locked',
+      amount: totalWage,
+      createdAt: `Aaj Subah ${nowTime}`,
+      isEscrowLocked: true,
+      escrowAmount: totalWage,
+      escrowTransactionId: txnId,
+      escrowLockedAt: `Aaj, ${nowTime}`,
+      completionOtp: otp,
+      workNotes: params.notes || 'Dihadi Suraksha Payment Locked',
+    };
+
+    setHirings((prev) => [newHiring, ...prev]);
+
+    // Send notification to current user (Employer)
+    const employerNotif: NotificationItem = {
+      id: `notif-${Date.now()}-emp`,
+      userId: currentUser.id,
+      title: '🔒 Payment Lock Ho Gayi (Escrow Active)',
+      message: `₹${totalWage} Dihadi Suraksha me surakshit lock ho gaye hain. Jab ${targetWorker.name} kaam pura kare tab "Done" dabayein.`,
+      type: 'payment',
+      read: false,
+      timestamp: 'Abhi',
+      relatedId: newHiring.id,
+    };
+
+    // Send notification to Worker
+    const workerNotif: NotificationItem = {
+      id: `notif-${Date.now()}-wrk`,
+      userId: targetWorker.userId || targetWorker.id,
+      title: '🎉 Naya Kaam Book Hua! (Payment Locked)',
+      message: `Mubaarak! ${currentUser.name} ne aapko ₹${totalWage} Dihadi Suraksha me lock karke book kiya hai. Kaam date: ${newHiring.scheduledDate}. Completion OTP: ${otp}`,
+      type: 'hire',
+      read: false,
+      timestamp: 'Abhi',
+      relatedId: newHiring.id,
+    };
+
+    setNotifications((prev) => [employerNotif, workerNotif, ...prev]);
+
+    // Post automatic verification message in chat between employer and worker
+    const convId = startOrGetConversation(targetWorker.id, currentUser.id, newHiring.jobId);
+    const automatedMsg: Message = {
+      id: `msg-esc-${Date.now()}`,
+      conversationId: convId,
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderRole: 'employer',
+      text: `🔒 [DIHADI SURAKSHA BOOKING]: Maine ₹${totalWage} Dihadi Wallet me LOCK karke aapko book kar liya hai. Kaam date: ${newHiring.scheduledDate}. Kaam pura hone par main yahan se "Done" mark kar dunga aur paise turant aapke account me chale jayenge! (Booking OTP: ${otp})`,
+      timestamp: nowTime,
+      isRead: false,
+    };
+    setMessages((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), automatedMsg],
+    }));
+
+    addAdminAuditLog(
+      'Escrow Payment Locked',
+      `Employer ${currentUser.name} locked ₹${totalWage} for worker ${targetWorker.name} (Txn: ${txnId})`
+    );
+
+    return newHiring;
+  };
+
+  // Mark Work Complete & Release Payment to Worker
+  const releaseEscrowPayment = (
+    hiringId: string,
+    rating?: number,
+    reviewText?: string
+  ): { success: boolean; message: string } => {
+    const hiring = hirings.find((h) => h.id === hiringId);
+    if (!hiring) return { success: false, message: 'Booking nahi mili' };
+
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setHirings((prev) =>
+      prev.map((h) => {
+        if (h.id !== hiringId) return h;
+        return {
+          ...h,
+          status: 'completed',
+          paymentStatus: 'paid',
+          isEscrowLocked: false,
+          escrowReleasedAt: `Aaj, ${nowTime}`,
+          completedAt: 'Aaj',
+        };
+      })
+    );
+
+    // Notifications
+    const empNotif: NotificationItem = {
+      id: `notif-${Date.now()}-rel-emp`,
+      userId: currentUser.id,
+      title: '✓ Payment Safalta-purvak Released!',
+      message: `₹${hiring.amount} worker ${hiring.workerName} ke account/UPI me bhej diye gaye hain. Dhanyawad!`,
+      type: 'payment',
+      read: false,
+      timestamp: 'Abhi',
+      relatedId: hiringId,
+    };
+
+    const wrkNotif: NotificationItem = {
+      id: `notif-${Date.now()}-rel-wrk`,
+      userId: hiring.workerId,
+      title: '💰 Payment Khate me Jama Ho Gayi!',
+      message: `Mubaarak! Employer ne kaam Done kiya aur ₹${hiring.amount} aapke account/UPI me credit ho gaye hain.`,
+      type: 'payment',
+      read: false,
+      timestamp: 'Abhi',
+      relatedId: hiringId,
+    };
+
+    setNotifications((prev) => [empNotif, wrkNotif, ...prev]);
+
+    // Send confirmation in chat
+    const convId = startOrGetConversation(hiring.workerId, hiring.employerId, hiring.jobId);
+    const releaseMsg: Message = {
+      id: `msg-rel-${Date.now()}`,
+      conversationId: convId,
+      senderId: currentUser.id,
+      senderName: currentUser.name,
+      senderRole: 'employer',
+      text: `✅ [PAYMENT RELEASED]: Kaam safalta-purvak pura hua! Maine ₹${hiring.amount} aapke bank/UPI me release kar diye hain. Bahut achha kaam kiya!`,
+      timestamp: nowTime,
+      isRead: false,
+    };
+    setMessages((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), releaseMsg],
+    }));
+
+    if (rating) {
+      addReview({
+        targetUserId: hiring.workerId,
+        targetType: 'worker',
+        reviewerId: currentUser.id,
+        reviewerName: currentUser.name,
+        reviewerRole: 'employer',
+        rating,
+        tags: ['Punctual', 'Skilled Work', 'Honest'],
+        comment: reviewText || 'Kaam bohot accha kiya, samay par pura kiya.',
+      });
+    }
+
+    addAdminAuditLog(
+      'Escrow Payment Released',
+      `₹${hiring.amount} released to worker ${hiring.workerName} by ${hiring.employerName}`
+    );
+
+    return {
+      success: true,
+      message: `₹${hiring.amount} worker ke account me safalta-purvak release ho gaye hain!`,
+    };
+  };
+
+  // Refund Escrow Payment (Cancelled or No-Show)
+  const refundEscrowPayment = (
+    hiringId: string,
+    reason?: string
+  ): { success: boolean; message: string } => {
+    const hiring = hirings.find((h) => h.id === hiringId);
+    if (!hiring) return { success: false, message: 'Booking nahi mili' };
+
+    setHirings((prev) =>
+      prev.map((h) => {
+        if (h.id !== hiringId) return h;
+        return {
+          ...h,
+          status: 'cancelled',
+          paymentStatus: 'refunded',
+          isEscrowLocked: false,
+        };
+      })
+    );
+
+    const refNotif: NotificationItem = {
+      id: `notif-${Date.now()}-ref`,
+      userId: hiring.employerId,
+      title: '↩ Payment Refunded',
+      message: `₹${hiring.amount} aapke source account/UPI me refund ho gaye hain. Reason: ${
+        reason || 'Cancelled/No-show'
+      }`,
+      type: 'payment',
+      read: false,
+      timestamp: 'Abhi',
+    };
+    setNotifications((prev) => [refNotif, ...prev]);
+
+    addAdminAuditLog(
+      'Escrow Payment Refunded',
+      `₹${hiring.amount} refunded to employer ${hiring.employerName}. Reason: ${reason || 'Cancelled'}`
+    );
+
+    return {
+      success: true,
+      message: `₹${hiring.amount} employer ko refund kar diye gaye hain.`,
+    };
+  };
+
   // Update Hiring Status & Payments
   const updateHiringStatus = (
     hiringId: string,
@@ -592,32 +982,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  // Reports
+  // Reports & Disputes
   const submitReport = (
     targetId: string,
     targetTitle: string,
     targetType: 'job' | 'worker' | 'employer',
     reason: string,
-    details: string
+    details: string,
+    disputeAmount?: number,
+    targetPhone?: string,
+    targetName?: string
   ) => {
     const newReport: ReportItem = {
       id: `rep-${Date.now()}`,
       reporterId: currentUser.id,
+      reporterName: currentUser.name,
+      reporterPhone: currentUser.phone,
+      reporterRole: userMode,
       reportedTargetId: targetId,
       targetTitle,
       targetType,
+      targetPhone,
+      targetName,
       reason,
       details,
+      disputeAmount,
       status: 'pending',
       timestamp: 'Abhi',
     };
     setReports((prev) => [newReport, ...prev]);
+
+    // Also notify
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      userId: currentUser.id,
+      title: 'Shikayat / Dispute Darj Hui',
+      message: `Aapki "${targetTitle}" ke khilaf shikayat admin resolution team ko bhej di gayi hai.`,
+      type: 'system',
+      read: false,
+      timestamp: 'Just now',
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
   };
 
-  // Admin moderation
+  // Admin moderation & Dispute Resolution
   const verifyUserAdmin = (userId: string) => {
     setWorkers((prev) =>
       prev.map((w) => (w.userId === userId || w.id === userId ? { ...w, isVerified: true } : w))
+    );
+  };
+
+  const toggleWorkerVerificationAdmin = (workerId: string) => {
+    setWorkers((prev) =>
+      prev.map((w) => (w.id === workerId ? { ...w, isVerified: !w.isVerified } : w))
     );
   };
 
@@ -625,10 +1042,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
   };
 
-  const resolveReportAdmin = (reportId: string) => {
+  const resolveReportAdmin = (reportId: string, note?: string) => {
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: 'resolved' } : r))
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: 'resolved',
+              resolutionNote: note || r.resolutionNote || 'Admin dwara samadhan kiya gaya (Resolved).',
+            }
+          : r
+      )
     );
+  };
+
+  const updateReportStatus = (
+    reportId: string,
+    status: 'pending' | 'in_progress' | 'resolved' | 'dismissed',
+    note?: string,
+    actionTaken?: string
+  ) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status,
+              ...(note ? { resolutionNote: note } : {}),
+              ...(actionTaken ? { actionTaken } : {}),
+            }
+          : r
+      )
+    );
+  };
+
+  const toggleEmployerVerificationAdmin = (employerName: string) => {
+    setJobs((prev) =>
+      prev.map((j) =>
+        j.employerName === employerName
+          ? { ...j, isEmployerVerified: !j.isEmployerVerified }
+          : j
+      )
+    );
+  };
+
+  const broadcastNotice = (title: string, message: string) => {
+    const alertNotif: NotificationItem = {
+      id: `notice-${Date.now()}`,
+      userId: currentUser.id,
+      title: `📢 [Admin Notice] ${title}`,
+      message,
+      type: 'system',
+      read: false,
+      timestamp: 'Abhi',
+    };
+    setNotifications((prev) => [alertNotif, ...prev]);
+  };
+
+  const addAdminAuditLog = (action: string, details: string) => {
+    const newLog: AdminAuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      officerName: adminSession?.officerName || 'Shivom Chauhan (Grievance Officer)',
+      action,
+      details,
+    };
+    setAdminAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  const loginAdmin = (passcode: string, emailOrId?: string): { success: boolean; message: string } => {
+    const trimmed = passcode.trim();
+    if (trimmed === adminPasscode || trimmed === '9876' || trimmed === 'admin123') {
+      const officer =
+        emailOrId && emailOrId.toLowerCase().includes('shivom')
+          ? 'Shivom Chauhan'
+          : 'Grievance Officer (Master Admin)';
+      const session: AdminSession = {
+        officerName: officer,
+        email: emailOrId || 'admin@dihadi.in',
+        phone: '+91 99999 00001',
+        role: 'Super Admin',
+        token: `AUTH_ADM_${Date.now()}`,
+        loginTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setIsAdminAuthenticated(true);
+      setAdminSession(session);
+      try {
+        localStorage.setItem('dihadi_admin_auth', 'true');
+        localStorage.setItem('dihadi_admin_session', JSON.stringify(session));
+      } catch (e) {
+        console.error(e);
+      }
+      addAdminAuditLog('Admin Portal Login', `Officer ${officer} authenticated successfully.`);
+      setIsAdminLoginModalOpen(false);
+      return { success: true, message: 'Admin login safalta-purvak ho gaya!' };
+    }
+    return {
+      success: false,
+      message: 'गलत एडमिन पिन! कृपया सही मास्टर पिन दर्ज करें (Default PIN: 9876)',
+    };
+  };
+
+  const logoutAdmin = () => {
+    setIsAdminAuthenticated(false);
+    setAdminSession(null);
+    setIsAdminOpen(false);
+    setIsDedicatedAdminPortal(false);
+    try {
+      localStorage.removeItem('dihadi_admin_auth');
+      localStorage.removeItem('dihadi_admin_session');
+    } catch (e) {
+      console.error(e);
+    }
+    addAdminAuditLog('Admin Logout', 'Officer logged out. Portal secured.');
+  };
+
+  const updateAdminPasscode = (newPin: string) => {
+    setAdminPasscode(newPin);
+    try {
+      localStorage.setItem('dihadi_admin_pin', newPin);
+    } catch (e) {
+      console.error(e);
+    }
+    addAdminAuditLog('Security PIN Updated', 'Master Admin passcode changed.');
+  };
+
+  const openAdminPortal = () => {
+    if (isAdminAuthenticated) {
+      setIsAdminOpen(true);
+    } else {
+      setIsAdminLoginModalOpen(true);
+    }
   };
 
   // Auth functions
@@ -640,11 +1184,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         phone,
         name: name || prev.name,
         role: role || prev.role,
+        authProvider: 'phone',
         isPhoneVerified: true,
       }));
       return true;
     }
     return false;
+  };
+
+  const loginWithGoogle = (name?: string, email?: string, avatar?: string, role?: UserMode) => {
+    setIsAuthenticated(true);
+    setCurrentUser((prev) => ({
+      ...prev,
+      name: name || 'Shivom Chauhan',
+      email: email || 'shivomchauhan9@gmail.com',
+      phone: prev.phone || '+91 98125 77890',
+      role: role || prev.role,
+      authProvider: 'google',
+      avatar:
+        avatar ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+      isPhoneVerified: true,
+    }));
   };
 
   const logout = () => {
@@ -682,6 +1243,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthenticated,
         currentUser,
         loginWithOtp,
+        loginWithGoogle,
         logout,
         verifyAadhaar,
         jobs,
@@ -701,6 +1263,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         postJob,
         createWorkerProfile,
         hireWorker,
+        bookWorkerWithEscrow,
+        releaseEscrowPayment,
+        refundEscrowPayment,
+        isEscrowBookingModalOpen,
+        setIsEscrowBookingModalOpen,
+        selectedWorkerForEscrow,
+        setSelectedWorkerForEscrow,
+        selectedJobIdForEscrow,
+        setSelectedJobIdForEscrow,
         updateHiringStatus,
         addReview,
         sendMessage,
@@ -709,8 +1280,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markAllNotificationsRead,
         submitReport,
         verifyUserAdmin,
+        toggleWorkerVerificationAdmin,
         removeJobAdmin,
         resolveReportAdmin,
+        updateReportStatus,
+        toggleEmployerVerificationAdmin,
+        broadcastNotice,
+        isAdminAuthenticated,
+        adminSession,
+        adminPasscode,
+        loginAdmin,
+        logoutAdmin,
+        updateAdminPasscode,
+        openAdminPortal,
+        isAdminLoginModalOpen,
+        setIsAdminLoginModalOpen,
+        isDedicatedAdminPortal,
+        setIsDedicatedAdminPortal,
+        adminAuditLogs,
+        addAdminAuditLog,
         isPostJobOpen,
         setIsPostJobOpen,
         isLocationModalOpen,

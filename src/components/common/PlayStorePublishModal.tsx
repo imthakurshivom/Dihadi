@@ -11,6 +11,8 @@ import {
   Package,
   Layers,
   Sparkles,
+  GitBranch,
+  Terminal,
 } from 'lucide-react';
 
 export const PlayStorePublishModal: React.FC = () => {
@@ -123,19 +125,89 @@ export const PlayStorePublishModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Method 1: PWABuilder (Fastest, 2 Minutes) */}
+          {/* Method 1: GitHub Actions APK Workflow (Direct Phone APK & AAB) */}
+          <div className="border-2 border-stone-900 rounded-2xl p-4 bg-stone-900 text-white shadow-md space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-black text-xs">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    <GitBranch className="w-4 h-4 text-orange-400" />
+                    GitHub Actions: Automatic APK & AAB Build
+                  </h4>
+                  <p className="text-[11px] text-stone-300">
+                    Direct phone installable .apk and Play Store .aab generated automatically on GitHub
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold px-2 py-0.5 rounded-full">
+                Configured & Committed
+              </span>
+            </div>
+
+            <p className="text-xs text-stone-300 leading-relaxed font-medium">
+              A pre-configured CI/CD workflow is ready in <code className="bg-stone-800 text-orange-300 px-1 py-0.5 rounded text-[11px]">.github/workflows/build-apk.yml</code>.
+              Push this repository to your GitHub account to trigger automatic Android compilation:
+            </p>
+
+            <div className="bg-black/80 text-emerald-300 font-mono text-[11px] p-3 rounded-xl overflow-x-auto relative border border-stone-800">
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap">
+{`# 1. Add your GitHub repository remote
+git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git
+git branch -M main
+git push -u origin main
+
+# 2. To auto-publish a GitHub Release with APK:
+git tag v1.0.0
+git push origin v1.0.0`}
+              </pre>
+              <button
+                onClick={() =>
+                  copyToClipboard(
+                    `git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git\ngit branch -M main\ngit push -u origin main`,
+                    'git-push'
+                  )
+                }
+                className="absolute top-2.5 right-2.5 p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg transition text-[10px] font-sans flex items-center gap-1 font-semibold"
+                title="Copy Git Push Commands"
+              >
+                {copiedKey === 'git-push' ? (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Commands</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="p-2.5 bg-stone-800/80 rounded-xl text-xs space-y-1 text-stone-300 border border-stone-700/60">
+              <span className="text-stone-400 font-semibold text-[10px] uppercase tracking-wider block">Where to find your APK after push:</span>
+              <p className="text-[11px]">
+                👉 Open your repo on GitHub ➔ click <strong>Actions</strong> tab ➔ Click latest build ➔ Download <strong>Dihadi-Android-App-APK</strong> (contains both <code className="text-amber-300">dihadi-release.apk</code> and <code className="text-amber-300">dihadi-playstore-bundle.aab</code>).
+              </p>
+            </div>
+          </div>
+
+          {/* Method 2: PWABuilder (Fastest, 2 Minutes) */}
           <div className="border border-stone-200 rounded-2xl p-4 bg-white shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs">
-                  1
+                  2
                 </div>
                 <h4 className="font-bold text-sm text-stone-900">
-                  Instant Method: Generate .AAB Bundle via PWABuilder
+                  Alternative: Instant .AAB via PWABuilder
                 </h4>
               </div>
-              <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                Recommended
+              <span className="text-[11px] bg-stone-100 text-stone-600 font-bold px-2 py-0.5 rounded-full">
+                No Terminal
               </span>
             </div>
 
@@ -157,14 +229,14 @@ export const PlayStorePublishModal: React.FC = () => {
             </a>
           </div>
 
-          {/* Method 2: Google's Official Bubblewrap CLI */}
+          {/* Method 3: Google's Official Bubblewrap CLI */}
           <div className="border border-stone-200 rounded-2xl p-4 bg-stone-50 space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs">
-                2
+                3
               </div>
               <h4 className="font-bold text-sm text-stone-900">
-                Official Google CLI Method (Bubblewrap)
+                Local CLI Method (Bubblewrap)
               </h4>
             </div>
 

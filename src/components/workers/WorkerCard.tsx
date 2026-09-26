@@ -11,6 +11,7 @@ import {
   Briefcase,
   ShieldCheck,
   Check,
+  Lock,
 } from 'lucide-react';
 
 interface Props {
@@ -24,6 +25,8 @@ export const WorkerCard: React.FC<Props> = ({ worker, onOpenDetail }) => {
     savedWorkerIds,
     toggleSaveWorker,
     hireWorker,
+    setIsEscrowBookingModalOpen,
+    setSelectedWorkerForEscrow,
     startOrGetConversation,
     setActiveConversationId,
     setActiveTab,
@@ -36,8 +39,8 @@ export const WorkerCard: React.FC<Props> = ({ worker, onOpenDetail }) => {
 
   const handleHire = (e: React.MouseEvent) => {
     e.stopPropagation();
-    hireWorker(worker.id, undefined, worker.dailyWageMin);
-    setHiredState('hired');
+    setSelectedWorkerForEscrow(worker);
+    setIsEscrowBookingModalOpen(true);
   };
 
   const handleCall = (e: React.MouseEvent) => {
@@ -187,17 +190,14 @@ export const WorkerCard: React.FC<Props> = ({ worker, onOpenDetail }) => {
 
       {/* Action Row */}
       <div className="mt-3.5 pt-3 border-t border-stone-100 flex items-center gap-2">
-        {/* Hire Worker Button */}
+        {/* Book & Lock Payment Button */}
         <button
           onClick={handleHire}
-          disabled={hiredState === 'hired'}
-          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition active:scale-95 shadow-sm ${
-            hiredState === 'hired'
-              ? 'bg-emerald-600 text-white'
-              : 'bg-stone-900 hover:bg-black text-white'
-          }`}
+          className="flex-1 py-2 px-2.5 rounded-xl font-bold text-xs transition active:scale-95 shadow-sm bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white flex items-center justify-center gap-1 cursor-pointer"
+          title="Book with guaranteed escrow payment lock"
         >
-          {hiredState === 'hired' ? '✓ Hired (Scheduled)' : 'Hire Karein'}
+          <Lock className="w-3 h-3" />
+          <span>Book & Lock 🔒</span>
         </button>
 
         {/* Call button */}

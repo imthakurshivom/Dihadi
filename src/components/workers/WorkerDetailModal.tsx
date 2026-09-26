@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Check,
   Award,
+  Lock,
 } from 'lucide-react';
 
 interface Props {
@@ -33,6 +34,8 @@ export const WorkerDetailModal: React.FC<Props> = ({ worker, onClose }) => {
     setActiveTab,
     reviews,
     setReportTarget,
+    setIsEscrowBookingModalOpen,
+    setSelectedWorkerForEscrow,
   } = useApp();
 
   const [showHireBox, setShowHireBox] = useState(false);
@@ -348,12 +351,18 @@ export const WorkerDetailModal: React.FC<Props> = ({ worker, onClose }) => {
             </form>
           ) : (
             <>
-              {/* Hire Worker CTA */}
+              {/* Escrow Booking CTA */}
               <button
-                onClick={() => setShowHireBox(true)}
-                className="flex-1 py-3.5 px-4 rounded-2xl bg-stone-900 hover:bg-black text-white font-bold text-sm shadow-md active:scale-98 transition flex items-center justify-center gap-1.5"
+                onClick={() => {
+                  setSelectedWorkerForEscrow(worker);
+                  setIsEscrowBookingModalOpen(true);
+                  onClose();
+                }}
+                className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm shadow-md active:scale-98 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                title="Book worker with guaranteed escrow payment lock"
               >
-                <span>Hire Karein (Kaam Dein)</span>
+                <Lock className="w-4 h-4" />
+                <span>Book & Lock Payment 🔒</span>
               </button>
 
               {/* Call button */}

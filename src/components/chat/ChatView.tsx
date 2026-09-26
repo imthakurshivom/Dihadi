@@ -11,6 +11,9 @@ import {
   MapPin,
   Clock,
   Sparkles,
+  Lock,
+  CheckCircle2,
+  Check,
 } from 'lucide-react';
 
 export const ChatView: React.FC = () => {
@@ -22,13 +25,37 @@ export const ChatView: React.FC = () => {
     sendMessage,
     currentUser,
     setReportTarget,
+    workers,
+    hirings,
+    releaseEscrowPayment,
+    setIsEscrowBookingModalOpen,
+    setSelectedWorkerForEscrow,
+    setSelectedJobIdForEscrow,
   } = useApp();
 
   const [inputText, setInputText] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [releaseSuccessMsg, setReleaseSuccessMsg] = useState('');
 
   const activeConv = conversations.find((c) => c.id === activeConversationId);
   const activeMessages = activeConversationId ? messages[activeConversationId] || [] : [];
+
+  const matchedWorker = activeConv
+    ? workers.find(
+        (w) =>
+          w.id === activeConv.participantWorkerId ||
+          w.name.toLowerCase() === activeConv.participantWorkerName.toLowerCase()
+      )
+    : undefined;
+
+  const linkedHiring = activeConv
+    ? hirings.find(
+        (h) =>
+          (h.workerId === activeConv.participantWorkerId ||
+            h.workerName.toLowerCase() === activeConv.participantWorkerName.toLowerCase()) &&
+          (h.status === 'in_progress' || h.status === 'scheduled' || h.paymentStatus === 'locked')
+      )
+    : undefined;
 
   const quickReplies = [
     'Haan, kal 8:30 AM par aa jaunga.',
@@ -147,6 +174,22 @@ export const ChatView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 relative">
+          {/* Quick Escrow Booking Trigger */}
+          {matchedWorker && (!linkedHiring || linkedHiring.status === 'completed') && (
+            <button
+              onClick={() => {
+                setSelectedWorkerForEscrow(matchedWorker);
+                setSelectedJobIdForEscrow(activeConv.jobId);
+                setIsEscrowBookingModalOpen(true);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-bold text-xs shadow-sm hover:from-orange-500 hover:to-amber-500 transition active:scale-95 cursor-pointer whitespace-nowrap"
+              title="Book Worker with Escrow Payment Lock"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Book & Lock 🔒</span>
+            </button>
+          )}
+
           <a
             href={`tel:${activeConv.participantWorkerPhone}`}
             className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
@@ -196,6 +239,57 @@ export const ChatView: React.FC = () => {
           <span className="text-[10px] bg-orange-200/60 text-orange-800 font-bold px-1.5 py-0.5 rounded">
             Linked Job
           </span>
+        </div>
+      )}
+
+      {/* Live Escrow Payment Milestone Banner */}
+      {linkedHiring && linkedHiring.isEscrowLocked && (
+        <div className="bg-stone-900 text-white p-3 border-b border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-inner">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center font-bold">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white">
+                  Dihadi Suraksha: ₹{linkedHiring.amount} Locked
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[9px] font-bold px-2 py-0.2 rounded-full">
+                  ESCROW ACTIVE
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-300">
+                Kaam complete hone par payment worker ke account me release karein.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            {linkedHiring.completionOtp && (
+              <span className="text-[10px] text-stone-400 bg-black/40 px-2 py-1 rounded-lg border border-stone-700">
+                OTP: <strong className="text-orange-300 font-mono">{linkedHiring.completionOtp}</strong>
+              </span>
+            )}
+            <button
+              onClick={() => {
+                const res = releaseEscrowPayment(linkedHiring.id, 5);
+                setReleaseSuccessMsg(res.message);
+                setTimeout(() => setReleaseSuccessMsg(''), 4000);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 flex items-center gap-1 cursor-pointer whitespace-nowrap"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Kaam Done (Release ₹{linkedHiring.amount})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Release Success Banner */}
+      {releaseSuccessMsg && (
+        <div className="bg-emerald-600 text-white text-xs font-bold p-2.5 text-center flex items-center justify-center gap-1.5 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{releaseSuccessMsg}</span>
         </div>
       )}
 

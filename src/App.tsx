@@ -12,6 +12,8 @@ import { LocationPickerModal } from './components/common/LocationPickerModal';
 import { AuthModal } from './components/common/AuthModal';
 import { ReportModal } from './components/common/ReportModal';
 import { AdminDashboardModal } from './components/admin/AdminDashboardModal';
+import { AdminLoginPortalModal } from './components/admin/AdminLoginPortalModal';
+import { AdminDedicatedPortalView } from './components/admin/AdminDedicatedPortalView';
 import { PlayStorePublishModal } from './components/common/PlayStorePublishModal';
 import { PostJobModal } from './components/jobs/PostJobModal';
 import { JobDetailModal } from './components/jobs/JobDetailModal';
@@ -28,7 +30,20 @@ const MainAppContent: React.FC = () => {
     setSelectedJobForDetail,
     selectedWorkerForDetail,
     setSelectedWorkerForDetail,
+    isDedicatedAdminPortal,
+    isAdminAuthenticated,
   } = useApp();
+
+  // If in Standalone Dedicated Admin Portal mode, render the separate Admin App!
+  if (isDedicatedAdminPortal && isAdminAuthenticated) {
+    return (
+      <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans">
+        <OfflineIndicator />
+        <AdminDedicatedPortalView />
+        <ReportModal />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
@@ -54,6 +69,7 @@ const MainAppContent: React.FC = () => {
       <PostJobModal />
       <AuthModal />
       <ReportModal />
+      <AdminLoginPortalModal />
       <AdminDashboardModal />
       <PlayStorePublishModal />
 
