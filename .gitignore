@@ -13,3 +13,9 @@ android-build/
 .gradle/
 *.keystore
 *.jks
+.idea/
+*.iml
+local.properties
+app/build/
+.cxx/
+captures/

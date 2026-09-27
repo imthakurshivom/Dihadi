@@ -13,6 +13,8 @@ import {
   Sparkles,
   GitBranch,
   Terminal,
+  Laptop,
+  Play,
 } from 'lucide-react';
 
 export const PlayStorePublishModal: React.FC = () => {
@@ -195,12 +197,51 @@ git push origin v1.0.0`}
             </div>
           </div>
 
-          {/* Method 2: PWABuilder (Fastest, 2 Minutes) */}
+          {/* Method 2: Android Studio Direct Clone & Run */}
+          <div className="border border-emerald-500/40 rounded-2xl p-4 bg-emerald-50/50 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                    <Laptop className="w-4 h-4 text-emerald-600" />
+                    Android Studio: Direct Clone & Run
+                  </h4>
+                  <p className="text-[11px] text-stone-600">
+                    Pre-configured Native Gradle project ready to open in Android Studio
+                  </p>
+                </div>
+              </div>
+              <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Play className="w-3 h-3 fill-emerald-700" />
+                Studio Ready
+              </span>
+            </div>
+
+            <div className="text-xs text-stone-700 space-y-2 bg-white p-3 rounded-xl border border-emerald-200">
+              <p className="font-semibold text-emerald-950">Android Studio me kaise kholein:</p>
+              <ol className="list-decimal list-inside space-y-1 text-stone-600 font-medium text-[11px]">
+                <li><strong>Android Studio</strong> kholein ➔ Welcome screen par <strong>"Get from VCS"</strong> par click karein.</li>
+                <li>Apne GitHub repo ka URL paste karein aur <strong>Clone</strong> dabayein.</li>
+                <li>Android Studio <code className="bg-stone-100 px-1 py-0.5 rounded font-mono">settings.gradle</code> aur <code className="bg-stone-100 px-1 py-0.5 rounded font-mono">app/</code> module ko automatically sync kar lega.</li>
+                <li>Apna phone USB se lagayein (ya Emulator chunein) aur green <strong>Run (▶)</strong> button dabayein!</li>
+              </ol>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1">
+              <span>Includes offline bundled web assets in <code className="bg-stone-100 px-1 rounded text-stone-700">app/src/main/assets/web/</code></span>
+              <span className="text-emerald-700 font-bold">Guide: ANDROID_STUDIO_GUIDE.md</span>
+            </div>
+          </div>
+
+          {/* Method 3: PWABuilder (Fastest, 2 Minutes) */}
           <div className="border border-stone-200 rounded-2xl p-4 bg-white shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs">
-                  2
+                  3
                 </div>
                 <h4 className="font-bold text-sm text-stone-900">
                   Alternative: Instant .AAB via PWABuilder
